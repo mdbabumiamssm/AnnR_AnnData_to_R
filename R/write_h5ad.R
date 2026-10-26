@@ -14,7 +14,9 @@
 #' read as an array or is wrapped in [I()].
 #'
 #' The file is written to a temporary file in the same directory and renamed
-#' into place only after it has been completed successfully.
+#' into place only after it has been completed successfully. On Windows, an
+#' existing destination is backed up during replacement; a failed replacement
+#' attempts to restore that backup.
 #'
 #' @param x An [AnnR], `SingleCellExperiment` or `Seurat` object.
 #' @param file Output path.
@@ -59,10 +61,20 @@ write_h5ad <- function(x, file, compression = c("none", "gzip", "lzf", "zstd"),
   cpp_w_group(w, "/", "anndata", "0.1.0")
   .w_anndata(w, "", ad, st)
   cpp_w_close(w)
-  if (file.exists(file)) unlink(file)
-  if (!file.rename(tmp, file)) {
-    if (!file.copy(tmp, file, overwrite = TRUE)) stop("could not move the written file into place", call. = FALSE)
-    unlink(tmp)
+  # POSIX rename replaces the destination atomically. Never unlink it first.
+  # On platforms that cannot replace an existing file, preserve a backup and
+  # restore it if the final rename fails. Do not fall back to a partial copy.
+  if (.Platform$OS.type == "windows" && file.exists(file)) {
+    backup <- tempfile(pattern = ".annr_backup_", tmpdir = dir)
+    if (!file.rename(file, backup)) stop("could not preserve the existing file", call. = FALSE)
+    if (!file.rename(tmp, file)) {
+      restored <- file.rename(backup, file)
+      stop(if (restored) "could not replace the file; original restored" else
+        paste0("could not replace the file; original preserved at ", backup), call. = FALSE)
+    }
+    unlink(backup)
+  } else if (!file.rename(tmp, file)) {
+    stop("could not move the written file into place; existing file preserved", call. = FALSE)
   }
   ok <- TRUE
   if (length(st$warnings)) {

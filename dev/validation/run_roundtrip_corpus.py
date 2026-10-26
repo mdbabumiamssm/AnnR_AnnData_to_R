@@ -33,9 +33,10 @@ def main():
             rows.append({"file": f, "status": "R-ERROR", "detail": (r.stderr or r.stdout)[-2000:]})
             continue
         js = work / f"rt_{i:03d}.json"
+        js.unlink(missing_ok=True)
         c = subprocess.run([sys.executable, "-I", str(HERE / "compare_roundtrip.py"), f, str(out),
                             "--json", str(js)], capture_output=True, text=True)
-        if c.returncode != 0 or not js.exists():
+        if not js.exists():
             print(f"PY-ERROR {Path(f).name}: {c.stderr[-1500:]}", flush=True)
             rows.append({"file": f, "status": "PY-ERROR", "detail": c.stderr[-2000:]})
             continue
@@ -43,6 +44,8 @@ def main():
         for k, v in res["counts"].items():
             total[k] += v
         bad = {k: v for k, v in res["counts"].items() if k != "equal_same" and v}
+        if res.get("extra_elements"):
+            bad["extra_elements"] = len(res["extra_elements"])
         status = "OK" if not bad else "DIFF"
         print(f"{status:4s} {Path(f).parent.name}/{Path(f).name}  {res['counts']}  ({r.stdout.strip()})", flush=True)
         for d in res["details"][:8]:
@@ -53,6 +56,7 @@ def main():
     (work / "summary.json").write_text(json.dumps({"via": via, "compression": comp, "total": total,
                                                    "results": rows}, indent=1))
     print("\nTOTAL", via, comp, total)
+    sys.exit(1 if any(r["status"] != "OK" for r in rows) or not rows else 0)
 
 
 if __name__ == "__main__":

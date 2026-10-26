@@ -22,12 +22,20 @@ Main functions:
 Options:
 * `AnnR.threads`: number of threads (default: up to 16 available cores).
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/mdbabumiamssm/AnnR}
+  \item Report bugs at \url{https://github.com/mdbabumiamssm/AnnR/issues}
+}
+
+}
 \author{
-\strong{Maintainer}: Md Babu Mia \email{md.babu.mia@mssm.edu}
+\strong{Maintainer}: MD BABU MIA \email{md.babu.mia@mssm.edu}
 
 Authors:
 \itemize{
-  \item Md Babu Mia \email{md.babu.mia@mssm.edu}
+  \item MD BABU MIA \email{md.babu.mia@mssm.edu}
 }
 
 }

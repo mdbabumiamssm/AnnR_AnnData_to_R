@@ -81,13 +81,17 @@ AnnR <- function(X = NULL, obs = NULL, var = NULL, obsm = list(), varm = list(),
   for (k in names(x$obsm)) chk(NROW(x$obsm[[k]]) == n_obs, sprintf("obsm '%s' must have %d rows", k, n_obs))
   for (k in names(x$varm)) chk(NROW(x$varm[[k]]) == n_var, sprintf("varm '%s' must have %d rows", k, n_var))
   for (k in names(x$obsp)) {
-    chk(all(dim(x$obsp[[k]]) == n_obs), sprintf("obsp '%s' must be %d x %d", k, n_obs, n_obs))
+    chk(length(dim(x$obsp[[k]])) == 2L && all(dim(x$obsp[[k]]) == n_obs), sprintf("obsp '%s' must be %d x %d", k, n_obs, n_obs))
   }
   for (k in names(x$varp)) {
-    chk(all(dim(x$varp[[k]]) == n_var), sprintf("varp '%s' must be %d x %d", k, n_var, n_var))
+    chk(length(dim(x$varp[[k]])) == 2L && all(dim(x$varp[[k]]) == n_var), sprintf("varp '%s' must be %d x %d", k, n_var, n_var))
   }
   if (!is.null(x$raw) && !is.null(x$raw$X)) {
+    chk(length(dim(x$raw$X)) == 2L, "`raw$X` must be two-dimensional")
     chk(nrow(x$raw$X) == n_obs, "`raw$X` must have one row per observation")
+    if (!is.null(x$raw$var)) {
+      chk(nrow(x$raw$var) == ncol(x$raw$X), "`raw$var` must have one row per raw variable")
+    }
   }
   invisible(TRUE)
 }

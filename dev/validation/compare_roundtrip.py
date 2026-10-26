@@ -16,6 +16,7 @@ Usage: python compare_roundtrip.py <original.h5ad> <r_written.h5ad> [--json out.
 from __future__ import annotations
 
 import json
+import shutil
 import sys
 import tempfile
 import warnings
@@ -231,7 +232,8 @@ def main():
             print(json.dumps(res["counts"]))
             if out_json:
                 Path(out_json).write_text(json.dumps(res, indent=1))
-            return
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            sys.exit(1)
     la, lb = {}, {}
     leaves(A, "", la)
     leaves(B, "", lb)
@@ -266,6 +268,7 @@ def main():
     if ref_error:
         res["details"].append(f"note: python could not write a reference copy ({ref_error[:120]})")
     extra = sorted(set(lb) - set(la))
+    res["extra_elements"] = extra
     if extra:
         res["details"].append(f"extra elements written by R: {extra[:10]}")
     res["counts"] = counts
@@ -276,7 +279,8 @@ def main():
     if out_json:
         Path(out_json).write_text(json.dumps(res, indent=1, default=str))
     if "--keep-ref" not in sys.argv:
-        ref.unlink(missing_ok=True)
+        shutil.rmtree(tmpdir, ignore_errors=True)
+    sys.exit(1 if extra or any(v for k, v in counts.items() if k != "equal_same") else 0)
 
 
 if __name__ == "__main__":

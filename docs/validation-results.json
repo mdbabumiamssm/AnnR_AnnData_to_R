@@ -1,0 +1,178 @@
+{
+  "date": "2026-10-26",
+  "package": "AnnR",
+  "version": "0.1.0",
+  "author": "MD BABU MIA",
+  "r_tests": {
+    "passed": 207,
+    "test_blocks": 23,
+    "failed": 0,
+    "warnings": 0,
+    "skipped": 0
+  },
+  "comparisons": {
+    "read_small": {
+      "files": 41,
+      "status_counts": {
+        "PASS": 41,
+        "FAIL": 0,
+        "R-ERROR": 0,
+        "PY-ERROR": 0
+      },
+      "elements": 1534
+    },
+    "read_syn_strengthened": {
+      "files": 9,
+      "status_counts": {
+        "PASS": 9,
+        "FAIL": 0,
+        "R-ERROR": 0,
+        "PY-ERROR": 0
+      },
+      "elements": 523
+    },
+    "rt_small_annr": {
+      "files": 41,
+      "route": "annr",
+      "compression": "none",
+      "counts": {
+        "equal_same": 1222,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_small_sce": {
+      "files": 41,
+      "route": "sce",
+      "compression": "none",
+      "counts": {
+        "equal_same": 1222,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_final_seurat": {
+      "files": 41,
+      "route": "seurat",
+      "compression": "none",
+      "counts": {
+        "equal_same": 1222,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_syn_annr": {
+      "files": 9,
+      "route": "annr",
+      "compression": "none",
+      "counts": {
+        "equal_same": 448,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_syn_sce": {
+      "files": 9,
+      "route": "sce",
+      "compression": "none",
+      "counts": {
+        "equal_same": 448,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_final_syn_seurat": {
+      "files": 9,
+      "route": "seurat",
+      "compression": "none",
+      "counts": {
+        "equal_same": 448,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_small_gzip": {
+      "files": 41,
+      "route": "annr",
+      "compression": "gzip",
+      "counts": {
+        "equal_same": 1222,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_small_lzf": {
+      "files": 41,
+      "route": "annr",
+      "compression": "lzf",
+      "counts": {
+        "equal_same": 1222,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    },
+    "rt_small_zstd": {
+      "files": 41,
+      "route": "annr",
+      "compression": "zstd",
+      "counts": {
+        "equal_same": 1222,
+        "equal_diff": 0,
+        "values_differ": 0,
+        "unreadable": 0,
+        "missing": 0
+      }
+    }
+  },
+  "reference_environment": {
+    "anndata": "0.13.4",
+    "pandas": "3.1.0",
+    "h5py": "3.16.0",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "awkward": "2.14.0",
+    "hdf5plugin": "7.1.0",
+    "R": "4.6.1",
+    "HDF5": "1.14.6"
+  },
+  "synthetic_dataset_sha256": "76f68152e8e7c3a94676241eca713194ecb8bfc9d3e6be6342f353ac1867ee92",
+  "thread_determinism": {
+    "files": 50,
+    "read_threads": [
+      1,
+      2,
+      3,
+      7,
+      16,
+      32
+    ],
+    "write_threads": [
+      1,
+      32
+    ],
+    "mismatches": 0
+  },
+  "R_CMD_check": {
+    "manual": false,
+    "errors": 0,
+    "warnings": 0,
+    "notes": 0
+  },
+  "source_archive_sha256": "02d4a346b2afaae92e44d3c8ea30109aaaface23a1b1595dca22cc997e731ba3"
+}

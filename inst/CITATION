@@ -1,0 +1,6 @@
+bibentry("Manual",
+  title = "AnnR: Fast AnnData Input/Output for R",
+  author = person("MD BABU", "MIA"),
+  year = "2026",
+  note = "R package version 0.1.0",
+  url = "https://github.com/mdbabumiamssm/AnnR")

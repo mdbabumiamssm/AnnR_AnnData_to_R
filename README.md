@@ -4,8 +4,8 @@
 
 AnnR reads and writes the on-disk format of Python's
 [`anndata`](https://anndata.readthedocs.io) through a native C++ engine linked
-directly against the HDF5 C library. It was built to be the most efficient and
-the most faithful way to move single-cell data between Python and R:
+directly against the HDF5 C library. It provides native, parallel data
+interchange between Python and R. **Author and maintainer: MD BABU MIA.**
 
 * **Parallel direct-chunk reader.** HDF5 is used only for metadata; worker
   threads `pread()` the raw chunks, decompress them (gzip via
@@ -22,14 +22,14 @@ the most faithful way to move single-cell data between Python and R:
   them whenever that is lossless (values are checked), so a round trip
   reproduces the original file's dtypes and encodings. 64-bit integers beyond
   2^53 keep their exact bit patterns.
-* **Every anndata encoding**, current and legacy: `csr_matrix`, `csc_matrix`,
+* **Broad encoding support**, current and legacy: `csr_matrix`, `csc_matrix`,
   dense arrays of any rank, `dataframe` (0.1.0 and 0.2.0), `categorical`,
   `nullable-integer`/`-boolean`/`-string-array`, `string`, `numeric-scalar`,
   `rec-array`, `awkward-array`, `null`, nested `AnnData`, plus files written
   by anndata < 0.7 (compound `obs`/`var`, `h5sparse` matrices, `raw.X`,
   `uns` categories, neighbour graphs in `uns`).
-* **Converters** to and from `SingleCellExperiment` and `Seurat` (v5) that
-  are themselves lossless (validated by round trips, see below).
+* **Converters** to and from `SingleCellExperiment` and `Seurat` (v5),
+  validated by unmodified round trips (see below).
 
 ## Installation
 
@@ -50,6 +50,26 @@ remotes::install_github("mdbabumiamssm/AnnR")
 
 If no system HDF5 is found, the configure script falls back to the
 Bioconductor package `Rhdf5lib`.
+
+## Tutorial and bundled sample data
+
+Start with the [complete tutorial](docs/TUTORIAL.md). It explains orientation,
+selective reads, subsetting, compression, both converters, and Python checks.
+The package includes an MIT-licensed synthetic dataset (120 cells x 40 genes)
+and human-readable CSV companions; no patient data or downloads are needed.
+
+```r
+library(AnnR)
+f <- system.file("extdata", "annr_toy.h5ad", package = "AnnR", mustWork = TRUE)
+ad <- read_h5ad(f)
+ad
+source(system.file("examples", "tutorial.R", package = "AnnR"))
+# Open the standalone illustrated guide:
+browseURL(system.file("doc", "AnnR-tutorial.html", package = "AnnR"))
+```
+
+See [sample schema and provenance](inst/extdata/README.md),
+[validation instructions](docs/VALIDATION.md), and [release review](docs/RELEASE_REVIEW.md).
 
 ## Usage
 
@@ -125,11 +145,14 @@ originals restored by `write_h5ad()`.
 
 ## Validation
 
-Every claim below was checked against the reference implementation, Python
+The following historical development results were recorded against Python
 `anndata` 0.13.4 (pandas 3.1, h5py 3.16), with scripts in `dev/validation/`.
+Fresh release checks and their scope are recorded separately in
+[RELEASE_REVIEW.md](docs/RELEASE_REVIEW.md). Timing and sanitizer claims below
+refer to the development runs, unless the release review explicitly repeats them.
 
 **Read fidelity.** AnnR's in-memory result is dumped and compared, element by
-element and bit for bit (NaN-aware), with what Python `anndata.read_h5ad`
+element using exact numeric equality (NaN-aware), with what Python `anndata.read_h5ad`
 returns, including R type choice, orientation, factor levels/codes, row names
 and NA positions. The comparator shares no code with AnnR and was itself
 mutation-tested (a single `1e-7` change, a transposed embedding or one moved
@@ -144,7 +167,9 @@ sparse index each make it fail).
 **Round trips.** Each file is read by AnnR, written back, read by Python and
 classified per element (same categories as the
 [anndataR comparison post](https://lazappi.id.au/posts/2026-10-25-anndata-r-claude/)).
-On-disk encoding and dtype are compared with the original file.
+On-disk encoding and dtype are compared with the original file for modern
+layouts and with Python's normalized rewrite for legacy elements. This is
+not a byte-for-byte file comparison or a check of NaN payload bits.
 
 | Corpus | Route | Compression | Equal, same encoding & dtype | Equal, other encoding/dtype | Values differ | Python cannot read | Not written |
 |---|---|---|---:|---:|---:|---:|---:|
@@ -169,7 +194,8 @@ on the small and synthetic corpora.
   (50 files), and files written with 1 or 32 threads read back identically.
 * Truncated, corrupted (damaged gzip chunk) and non-HDF5 files produce R
   errors naming the element, never crashes; failed writes leave no file.
-* `R CMD check`: 0 errors, 0 warnings, 0 notes; 181 testthat expectations.
+* Development `R CMD check`: 0 errors, 0 warnings, 0 notes; 181 testthat expectations.
+  The release adds regression checks; see the release review for fresh totals.
 
 
 ## Benchmarks
@@ -250,6 +276,10 @@ matrices of 484M non-zeros) was read in about 2 s and written in about 2.3 s
 * Blosc-compressed datasets need the HDF5 blosc plugin (`HDF5_PLUGIN_PATH`).
   gzip, LZF and Zstandard are built in.
 * On Windows the parallel direct path is disabled (reads use `H5Dread`).
+* Conversion fidelity is validated for immediate, unmodified round trips.
+  Export rejects changed cell/feature identities or assay selection in converted
+  Seurat objects to protect saved name maps; subset AnnR before conversion.
+  Validate raw snapshots and auxiliary metadata after value edits; see the tutorial.
 * Large vectors live outside R's managed heap, so `object.size()` and
   `gc()` under-report them.
 
@@ -262,6 +292,13 @@ matrices of 484M non-zeros) was read in about 2 s and written in about 2.3 s
 original file), `run_*_corpus.py` drivers, sanitizer and determinism suites.
 `dev/bench/` contains the benchmark harness.
 
+## Citation and authorship
+
+Authored and maintained by **MD BABU MIA**. Use `citation("AnnR")` in R,
+or the repository's `CITATION.cff` metadata. See [NEWS.md](NEWS.md) for changes.
+
 ## License
 
-MIT.
+MIT. Copyright (c) 2026 MD BABU MIA. The bundled synthetic example is
+covered by the same license. HDF5 and optional system codecs retain their
+respective licenses.

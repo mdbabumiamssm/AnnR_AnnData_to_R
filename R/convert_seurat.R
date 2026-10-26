@@ -136,7 +136,8 @@ as_Seurat <- function(x, assay = "RNA", counts = "counts", data = "X", project =
     types = types, obs_names = cells, var_names = genes, reductions = red_map,
     graphs = graph_map, layer_map = layer_map, x_absent = x_absent, int64_bits = int64_bits,
     obsm_other = extra_obsm, varm = x$varm, varp = x$varp, raw = x$raw,
-    obs_columns = names(x$obs), assay = assay
+    obs_columns = names(x$obs), assay = assay,
+    seurat_cells = colnames(seu), seurat_genes = rownames(seu[[assay]])
   )
   seu
 }
@@ -158,6 +159,15 @@ as_AnnR.Seurat <- function(x, assay = NULL, X = "data", layers = "counts", ...) 
   info <- x@misc$AnnR
   assay <- assay %||% info$assay %||% SeuratObject::DefaultAssay(x)
   a <- x[[assay]]
+  if (!is.null(info$seurat_cells)) {
+    if (!identical(assay, info$assay) ||
+        !identical(colnames(x), info$seurat_cells) ||
+        !identical(rownames(a), info$seurat_genes)) {
+      stop("the converted Seurat object's assay or cell/feature identities have changed; ",
+           "subset or rename the AnnR object before converting to Seurat, ",
+           "so saved metadata cannot be assigned to the wrong cells or features", call. = FALSE)
+    }
+  }
   have <- SeuratObject::Layers(a)
   get <- function(l) SeuratObject::LayerData(x, assay = assay, layer = l)
   cells <- colnames(x)

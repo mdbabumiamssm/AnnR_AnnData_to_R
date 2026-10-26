@@ -8,3 +8,11 @@
 ^\.Rproj\.user$
 ^bench$
 ^validation$
+^docs$
+^data-raw$
+^CITATION\.cff$
+^CONTRIBUTING\.md$
+^NEWS\.md$
+
+^\.mailmap$
+^Rplots\.pdf$

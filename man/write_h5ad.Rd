@@ -53,7 +53,9 @@ Scalars: a length-one vector in `uns` is written as a scalar unless it was
 read as an array or is wrapped in [I()].
 
 The file is written to a temporary file in the same directory and renamed
-into place only after it has been completed successfully.
+into place only after it has been completed successfully. On Windows, an
+existing destination is backed up during replacement; a failed replacement
+attempts to restore that backup.
 }
 \examples{
 \dontrun{

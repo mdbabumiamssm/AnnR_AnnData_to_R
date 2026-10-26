@@ -283,8 +283,19 @@ class Checker:
             self.n_checked += 1
             if node["kind"] != "awkward":
                 self.fail(path, f"awkward array read as {node['kind']}")
-            elif int(node["length"]) != len(val):
-                self.fail(path, "awkward length differs")
+            else:
+                import awkward as ak
+                form, length, buffers = ak.to_buffers(val)
+                if int(node["length"]) != length:
+                    self.fail(path, "awkward length differs")
+                if json.loads(node["form"]) != json.loads(form.to_json()):
+                    self.fail(path, "awkward form differs")
+                got_buffers = node["buffers"]
+                if set(got_buffers) != set(buffers):
+                    self.fail(path, "awkward buffer names differ")
+                else:
+                    for name, values in buffers.items():
+                        self.check_array(path + "/" + name, got_buffers[name], values)
         else:
             self.fail(path, f"no comparison rule for {type(val)}")
 
@@ -362,7 +373,7 @@ def main():
         print("   -", i)
     if out_json:
         Path(out_json).write_text(json.dumps(result, indent=1))
-    sys.exit(0)
+    sys.exit(1 if chk.issues else 0)
 
 
 if __name__ == "__main__":

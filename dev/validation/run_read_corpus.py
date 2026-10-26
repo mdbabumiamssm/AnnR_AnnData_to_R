@@ -31,10 +31,11 @@ def main():
             print(f"R-ERROR {Path(f).name}\n{(r.stderr or r.stdout)[-1500:]}", flush=True)
             continue
         out_json = work / f"result_{i:03d}.json"
+        out_json.unlink(missing_ok=True)
         c = subprocess.run([sys.executable, "-I", str(HERE / "compare_read.py"), f, str(dump),
                             "--json", str(out_json)], capture_output=True, text=True)
         print(c.stdout.strip(), flush=True)
-        if c.returncode != 0 or not out_json.exists():
+        if not out_json.exists():
             print(c.stderr[-3000:], flush=True)
             results.append({"file": f, "status": "PY-ERROR", "detail": c.stderr[-2000:]})
         else:
@@ -49,6 +50,7 @@ def main():
     print("\nSUMMARY", summary)
     total = sum(r.get("checked", 0) for r in results)
     print(f"elements compared: {total}")
+    sys.exit(1 if any(r["status"] != "PASS" for r in results) or not results else 0)
 
 
 if __name__ == "__main__":

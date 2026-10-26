@@ -17,3 +17,11 @@ src/Makevars.win
 # machine-specific file lists (local paths)
 dev/validation/corpus_*.txt
 dev/bench/files_*.txt
+
+# Bundled synthetic tutorial data
+!inst/extdata/*.h5ad
+*.tar.gz
+*.Rcheck/
+
+__pycache__/
+Rplots.pdf

@@ -16,3 +16,4 @@ for (f in files) {
   if (!identical(a, b)) { bad <- bad + 1; cat("WRITE MISMATCH", f, "\n") }
 }
 cat(sprintf("determinism: %d files x 6 thread counts, mismatches = %d\n", length(files), bad))
+if (bad > 0 || !length(files)) quit(status = 1L)
