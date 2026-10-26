@@ -1,0 +1,10 @@
+^\.oracle$
+^dev$
+^\.git$
+^\.github$
+^README\.Rmd$
+^LICENSE\.md$
+^.*\.Rproj$
+^\.Rproj\.user$
+^bench$
+^validation$

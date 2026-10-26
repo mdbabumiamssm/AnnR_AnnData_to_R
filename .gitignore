@@ -1,0 +1,19 @@
+.oracle/
+dev/logs/
+dev/work/
+*.o
+*.so
+*.dll
+src/Makevars
+config.log
+config.status
+.Rproj.user
+.Rhistory
+.RData
+*.h5ad
+!tests/testthat/fixtures/*.h5ad
+src/Makevars.win
+
+# machine-specific file lists (local paths)
+dev/validation/corpus_*.txt
+dev/bench/files_*.txt

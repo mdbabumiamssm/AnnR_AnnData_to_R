@@ -1,0 +1,42 @@
+Package: AnnR
+Type: Package
+Title: Fast and Faithful 'AnnData' ('.h5ad') Input/Output for R
+Version: 0.1.0
+Authors@R: c(
+    person("Md Babu", "Mia", email = "md.babu.mia@mssm.edu", role = c("aut", "cre"))
+    )
+Description: Reads and writes 'AnnData' '.h5ad' files (the on-disk format of the
+    Python 'anndata' package) directly from R through a native C++ engine linked
+    against the 'HDF5' C library. Chunks are fetched and decompressed in
+    parallel (gzip via 'libdeflate' or 'zlib', LZF, Zstandard) and decoded
+    straight into R memory, sparse matrices are mapped onto 'Matrix' classes
+    without copies, and every 'anndata' encoding (including legacy files written
+    by 'anndata' < 0.7) is supported. Original on-disk data types are recorded
+    so that files written back from R reproduce the source dtypes and encodings.
+    Converters to and from 'SingleCellExperiment' and 'Seurat' objects are
+    included.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends:
+    R (>= 4.1.0)
+Imports:
+    Matrix (>= 1.6-0),
+    methods,
+    parallel,
+    stats,
+    utils
+Suggests:
+    BiocGenerics,
+    DelayedArray,
+    jsonlite,
+    S4Vectors,
+    SeuratObject (>= 5.0.0),
+    SingleCellExperiment,
+    SummarizedExperiment,
+    testthat (>= 3.0.0)
+LinkingTo:
+    cpp11
+SystemRequirements: C++17, HDF5 C library (>= 1.10.5), zlib; optionally
+    libdeflate and libzstd for faster decompression
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.1.1

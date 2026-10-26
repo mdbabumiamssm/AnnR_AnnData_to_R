@@ -1,0 +1,20 @@
+#!/bin/sh
+# Windows (Rtools) configuration: HDF5, zlib and optional codecs via pkg-config.
+H5_CFLAGS=$(pkg-config --cflags hdf5 2>/dev/null)
+H5_LIBS=$(pkg-config --libs --static hdf5 2>/dev/null)
+if [ -z "$H5_LIBS" ]; then
+  H5_LIBS="-lhdf5 -lz -lsz -laec"
+fi
+DEFS=""
+EXTRA_LIBS=""
+if pkg-config --exists libdeflate 2>/dev/null; then
+  DEFS="$DEFS -DANNR_HAVE_LIBDEFLATE"
+  EXTRA_LIBS="$EXTRA_LIBS $(pkg-config --libs libdeflate)"
+fi
+if pkg-config --exists libzstd 2>/dev/null; then
+  DEFS="$DEFS -DANNR_HAVE_ZSTD"
+  EXTRA_LIBS="$EXTRA_LIBS $(pkg-config --libs libzstd)"
+fi
+sed -e "s|@H5_CFLAGS@|${H5_CFLAGS}|" -e "s|@H5_LIBS@|${H5_LIBS}|" \
+    -e "s|@DEFS@|${DEFS}|" -e "s|@EXTRA_LIBS@|${EXTRA_LIBS}|" \
+    -e "s|-pthread||g" src/Makevars.in > src/Makevars.win

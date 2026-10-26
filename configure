@@ -1,0 +1,155 @@
+#!/bin/sh
+# Configure script for AnnR.
+#
+# Locates the HDF5 C library (>= 1.10.5) and the optional fast codecs
+# (libdeflate, libzstd), then writes src/Makevars from src/Makevars.in.
+#
+# Overrides (environment variables):
+#   ANNR_HDF5_CFLAGS / ANNR_HDF5_LIBS   explicit HDF5 compile / link flags
+#   ANNR_NO_LIBDEFLATE=1                 do not use libdeflate even if found
+#   ANNR_NO_ZSTD=1                       do not use libzstd even if found
+
+: "${R_HOME:=$(R RHOME)}"
+if [ -z "${R_HOME}" ]; then
+  echo "configure: could not determine R_HOME" >&2
+  exit 1
+fi
+RBIN="${R_HOME}/bin/R"
+CC=$("${RBIN}" CMD config CC)
+CFLAGS=$("${RBIN}" CMD config CFLAGS)
+CPPFLAGS=$("${RBIN}" CMD config CPPFLAGS)
+LDFLAGS=$("${RBIN}" CMD config LDFLAGS)
+
+have_pkgconfig=no
+if command -v pkg-config >/dev/null 2>&1; then
+  have_pkgconfig=yes
+fi
+
+# Compile-and-link probe: try_link "<cflags>" "<libs>" "<C source>"
+try_link() {
+  tmpdir=$(mktemp -d 2>/dev/null || echo "/tmp/annr_conf_$$")
+  mkdir -p "$tmpdir"
+  printf '%s\n' "$3" > "$tmpdir/conftest.c"
+  # shellcheck disable=SC2086
+  if ${CC} ${CPPFLAGS} $1 ${CFLAGS} "$tmpdir/conftest.c" -o "$tmpdir/conftest" ${LDFLAGS} $2 >"$tmpdir/log" 2>&1; then
+    rm -rf "$tmpdir"
+    return 0
+  fi
+  cat "$tmpdir/log" >> config.log
+  rm -rf "$tmpdir"
+  return 1
+}
+
+: > config.log
+
+H5_PROBE='#include <hdf5.h>
+#if !H5_VERSION_GE(1, 10, 5)
+#error "HDF5 too old"
+#endif
+int main(void) { unsigned a, b, c; H5get_libversion(&a, &b, &c); return H5Dget_num_chunks < 0; }'
+
+H5_CFLAGS=""
+H5_LIBS=""
+H5_SOURCE=""
+
+if [ -n "${ANNR_HDF5_CFLAGS}${ANNR_HDF5_LIBS}" ]; then
+  H5_CFLAGS="${ANNR_HDF5_CFLAGS}"
+  H5_LIBS="${ANNR_HDF5_LIBS}"
+  H5_SOURCE="environment"
+fi
+
+if [ -z "${H5_SOURCE}" ] && [ "${have_pkgconfig}" = yes ]; then
+  for mod in hdf5 hdf5-serial; do
+    if pkg-config --exists "$mod" 2>/dev/null; then
+      cf=$(pkg-config --cflags "$mod")
+      lf=$(pkg-config --libs "$mod")
+      if try_link "$cf" "$lf" "$H5_PROBE"; then
+        H5_CFLAGS="$cf"; H5_LIBS="$lf"; H5_SOURCE="pkg-config ($mod)"
+        break
+      fi
+    fi
+  done
+fi
+
+if [ -z "${H5_SOURCE}" ]; then
+  for prefix in /usr/include/hdf5/serial /usr/local/include /opt/homebrew/include /usr/include; do
+    if [ -f "$prefix/hdf5.h" ]; then
+      libdir=$(echo "$prefix" | sed 's|/include/hdf5/serial|/lib/x86_64-linux-gnu/hdf5/serial|; s|/include$|/lib|')
+      if try_link "-I$prefix" "-L$libdir -lhdf5" "$H5_PROBE"; then
+        H5_CFLAGS="-I$prefix"; H5_LIBS="-L$libdir -lhdf5"; H5_SOURCE="$prefix"
+        break
+      fi
+    fi
+  done
+fi
+
+if [ -z "${H5_SOURCE}" ]; then
+  # Fall back to the static HDF5 shipped by Bioconductor's Rhdf5lib.
+  RH5_INC=$("${R_HOME}/bin/Rscript" -e 'cat(tryCatch(system.file("include", package = "Rhdf5lib"), error = function(e) ""))' 2>/dev/null)
+  RH5_LIB=$("${R_HOME}/bin/Rscript" -e 'cat(tryCatch(Rhdf5lib::pkgconfig("PKG_C_LIBS"), error = function(e) ""))' 2>/dev/null)
+  if [ -n "${RH5_INC}" ] && [ -n "${RH5_LIB}" ]; then
+    if try_link "-I${RH5_INC}" "${RH5_LIB}" "$H5_PROBE"; then
+      H5_CFLAGS="-I${RH5_INC}"; H5_LIBS="${RH5_LIB}"; H5_SOURCE="Rhdf5lib"
+    fi
+  fi
+fi
+
+if [ -z "${H5_SOURCE}" ]; then
+  echo "------------------------------------------------------------------" >&2
+  echo "AnnR: could not find the HDF5 C library (>= 1.10.5)." >&2
+  echo "Install it, e.g.:" >&2
+  echo "  deb: libhdf5-dev        rpm: hdf5-devel        brew: hdf5" >&2
+  echo "or install the Bioconductor package 'Rhdf5lib', or set" >&2
+  echo "ANNR_HDF5_CFLAGS / ANNR_HDF5_LIBS. See config.log for details." >&2
+  echo "------------------------------------------------------------------" >&2
+  exit 1
+fi
+echo "AnnR: using HDF5 from ${H5_SOURCE}"
+
+DEFS=""
+EXTRA_LIBS=""
+
+# zlib is required (deflate fallback and writing).
+if ! try_link "" "-lz" '#include <zlib.h>
+int main(void) { return zlibVersion() == 0; }'; then
+  echo "AnnR: zlib development files are required (zlib1g-dev / zlib-devel)." >&2
+  exit 1
+fi
+
+if [ -z "${ANNR_NO_LIBDEFLATE}" ]; then
+  ld_cf=""; ld_lf="-ldeflate"
+  if [ "${have_pkgconfig}" = yes ] && pkg-config --exists libdeflate 2>/dev/null; then
+    ld_cf=$(pkg-config --cflags libdeflate); ld_lf=$(pkg-config --libs libdeflate)
+  fi
+  if try_link "$ld_cf" "$ld_lf" '#include <libdeflate.h>
+int main(void) { struct libdeflate_decompressor *d = libdeflate_alloc_decompressor(); libdeflate_free_decompressor(d); return 0; }'; then
+    DEFS="${DEFS} -DANNR_HAVE_LIBDEFLATE ${ld_cf}"
+    EXTRA_LIBS="${EXTRA_LIBS} ${ld_lf}"
+    echo "AnnR: libdeflate found (fast gzip)"
+  else
+    echo "AnnR: libdeflate not found, using zlib for gzip"
+  fi
+fi
+
+if [ -z "${ANNR_NO_ZSTD}" ]; then
+  zs_cf=""; zs_lf="-lzstd"
+  if [ "${have_pkgconfig}" = yes ] && pkg-config --exists libzstd 2>/dev/null; then
+    zs_cf=$(pkg-config --cflags libzstd); zs_lf=$(pkg-config --libs libzstd)
+  fi
+  if try_link "$zs_cf" "$zs_lf" '#include <zstd.h>
+int main(void) { return ZSTD_versionNumber() == 0; }'; then
+    DEFS="${DEFS} -DANNR_HAVE_ZSTD ${zs_cf}"
+    EXTRA_LIBS="${EXTRA_LIBS} ${zs_lf}"
+    echo "AnnR: libzstd found (zstd filter)"
+  else
+    echo "AnnR: libzstd not found, zstd-compressed datasets need an HDF5 plugin"
+  fi
+fi
+
+sed -e "s|@H5_CFLAGS@|${H5_CFLAGS}|" \
+    -e "s|@H5_LIBS@|${H5_LIBS}|" \
+    -e "s|@DEFS@|${DEFS}|" \
+    -e "s|@EXTRA_LIBS@|${EXTRA_LIBS}|" \
+    src/Makevars.in > src/Makevars
+
+exit 0
